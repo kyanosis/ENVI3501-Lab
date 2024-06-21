@@ -1,0 +1,228 @@
+---
+title: "proj2-Chen"
+author: "Weixuan Chen"
+date: "3/24/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data
+
+```{r}
+d1=read.csv(file="http://faraway.neu.edu/biostats/assn2_dataset1.csv", as.is = FALSE)
+d2=read.csv(file="http://faraway.neu.edu/biostats/assn2_dataset3.csv")
+```
+
+```{r}
+d1
+```
+
+
+## Problem 1
+
+## 1
+
+```{r}
+ # Fill in this code wherever there is an XXXX
+d1.y2000=subset(d1, year == 2000) # Extract data from years 2000
+d1.y2003=subset(d1, year == 2003) # Extract data from years 2003
+```
+
+```{r}
+# Find unique species IDs
+unique.species=unique(d1$speciesID)
+# Initialize matrix to hold weighted means 
+mean.mat <- matrix(nrow= length(unique.species), ncol= 2, NA) 
+# Compute the weighted mean of each species 
+for (i in 1:length(unique.species)) {
+  tmp1=subset(d1.y2000, speciesID == unique.species[i])
+  tmp2=subset(d1.y2003, speciesID == unique.species[i])
+  mean.mat[i,]=c(weighted.mean(tmp1$lat , tmp1$abundance ), weighted.mean(tmp2$lat , tmp2$abundance ))
+}
+#Create a matrix holding the change in weighted mean latitude, along with another variable for species
+mean.change <- data.frame(speciesID=unique.species,
+                      moveDist= mean.mat[,1] - mean.mat[,2])
+```
+
+```{r}
+head(mean.change)
+```
+
+## 2
+
+```{r}
+## Create a new column
+mean.change["moved.north"] = NA
+## Determine if moveDist is greater than 0 and assign the direction
+for (i in 1:length(mean.change$speciesID)){
+  ifelse(mean.change$moveDist[i] > 0, mean.change$moved.north[i] <- TRUE, mean.change$moved.north[i] <- FALSE)
+}
+
+head(mean.change)
+```
+A postive difference means the species moves more northward in 2003 than in 2000. In the opposite, a negative difference means it moves more southward in 2003 than in 2000.  
+
+## 3
+
+```{r}
+# Count the number of species moving northward
+nrow(subset(mean.change, mean.change$moved.north == TRUE))
+# Count the number of species moving southward
+nrow(subset(mean.change, mean.change$moved.north == FALSE))
+```
+According to the differences in numbers, I think there is evidence of a northward shift.
+
+## 4
+We use one-sample t-test to test if the mean of moveDist is 0
+H0: mean of moveDist = 0
+H1: mean of moveDist ${\neq}$ 0
+
+```{r}
+t.test(mean.change$moveDist, mu = 0, alternative = "two.sided")
+```
+We have p-value 0.6, which we cannot reject the null hypothesis in any level of the significance. Therefore, we do not have enough evidence to show the species has the tendency to move northward or southward.
+
+## Problem 2
+
+## 1
+
+```{r}
+dispersal.mat <- matrix(nrow= length(unique.species), ncol= 2, NA) 
+## Using for loop to match the dispersal type with each species
+for (i in 1:length(unique.species)) {
+  disp=subset(d1, speciesID == unique.species[i])
+  # Assign the name of dispersal to each species
+  dispersal.mat[i,]=c(unique.species[i], as.character(disp$development[1]))
+}
+
+dispersal.df <- data.frame(speciesID=unique.species,
+                      dispersal= dispersal.mat[,2])
+## Order the species ID 
+dispersal.df <- dispersal.df[order(dispersal.df$speciesID,decreasing = FALSE), ]
+
+dispersal.df
+```
+
+## 2
+
+```{r}
+disp <- merge(mean.change, dispersal.df, by = "speciesID")
+# Remove NA values. The complete.cases function tells you if a row has complete entries (no NAs)
+disp <- disp[complete.cases(disp$moveDist), ]
+disp
+```
+
+## 3
+
+```{r}
+new.disp <- disp[,c("moved.north","dispersal")]
+new.disp
+```
+
+```{r}
+# Show the unique type of dispersals
+unique.dispersal <- unique(new.disp$dispersal)
+# Create a matrix to store the value of counts
+disp.sum.mat <- matrix(nrow= 3, ncol= 2, NA)
+for(i in 1:length(unique.dispersal)){
+  tmp = subset(new.disp, dispersal == unique.dispersal[i])
+  # nrow function returns the number of rows that moved.north variable is TRUE and FALSE. It counts the number of each.
+  disp.sum.mat[i,] <- c(nrow(tmp[tmp["moved.north"] == TRUE, ]), nrow(tmp[tmp["moved.north"] == FALSE, ]))
+}
+
+count.disp <- data.frame(moved.north=disp.sum.mat[,1],
+                      moved.south=disp.sum.mat[,2])
+
+rownames(count.disp) <- unique.dispersal
+# Transpose for plotting
+count.disp <- t(count.disp)
+count.disp
+```
+
+## 4
+
+```{r}
+barplot(count.disp,
+main = "Dispersal Count",
+xlab = "Class",
+col = c("red","green")
+)
+legend("topleft",
+c("moved.north","moved.south"),
+fill = c("red","green")
+)
+```
+It does not have strong evidence to show the association between dispersal and moved.north. 
+
+## 5
+We can use one-way ANOVA to compare the means in groups to determine whether there is statistical evidence that the associated population means are different. So here we suspect that the dispersal is an important driver of moving north.
+
+## 6
+H0: The means are the same
+H1: Not H0 (At least one mean is different)
+
+```{r}
+disp.aov <- aov(moveDist ~ dispersal, data = disp)
+summary(disp.aov)
+```
+We can see the p-value is 0.839, which we cannot reject the null hypothesis in any level of significance. We do not have enough evidence to show the difference in means as well as the association between moving north and dispersal.
+
+## Problem 3
+
+## 1
+
+```{r}
+d2
+```
+
+```{r}
+pace.east <- subset(d2, coast == "East")
+pace.west <- subset(d2, coast == "West")
+```
+
+I think we can merely perform a one-sample t-test to determine if the mean migrating distances of east and west coast are different than 2.4, which is the climate condition.
+
+## 2
+H0: Mean migrating distance = 2.4
+H1: Not H0 
+(for both east coast and west coast species)
+
+## 3
+
+```{r}
+##East Coast
+t.test(pace.east$migration, mu = 2.4, alternative = "two.sided")
+```
+We can see the p-value is 0.62, which the null hypothesis cannot be rejected. We conclude that we do not have enough evidence to show there is difference between mean and 2.4. 
+
+```{r}
+##West Coast
+t.test(pace.west$migration, mu = 2.4, alternative = "two.sided")
+```
+We can see the p-value is 0.04, which the null hypothesis can be rejected at 0.05 level. We conclude that we do have enough evidence to show there is difference between mean and 2.4 at 0.05 level. 
+
+## 4
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+## Group the d2 by coast categories and calculate the mean and se
+ci.df <- d2 %>% group_by(coast) %>% summarise(m = mean(migration),
+                                       stdv = sd(migration)/sqrt(length(migration)))
+
+
+
+ggplot(ci.df, aes(coast,m,fill=coast)) + 
+  geom_bar(stat="identity", color="black", 
+           position=position_dodge()) +
+  geom_hline(yintercept = 2.4) + 
+  geom_errorbar(aes(ymin=m-1.96*stdv, ymax=m+1.96*stdv), width=.2,
+                position=position_dodge(.9))
+```
+From the plot, we can see the pace of climate is in the CI of east coast species' migrating pace, but lower than the migrating pace of species from west coast. If we want to compare the rate of east and west coast communities, we have to eliminate the effect from the climate to make the experience variables under controlled. 

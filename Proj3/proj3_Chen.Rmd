@@ -1,0 +1,349 @@
+---
+title: "proj3_Chen"
+author: "Weixuan Chen"
+date: "4/14/2023"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Problem 1
+
+## Data Preparation
+
+```{r}
+benguela <- read.csv("http://faraway.neu.edu/biostats/assn3_benguela.csv")
+california <- read.csv("http://faraway.neu.edu/biostats/assn3_california.csv")
+canary <- read.csv("http://faraway.neu.edu/biostats/assn3_canary.csv")
+humboldt <- read.csv("http://faraway.neu.edu/biostats/assn3_humboldt.csv")
+```
+
+```{r}
+benguela
+```
+
+
+## 1
+
+```{r}
+california$period <- ifelse(california$year >= 1950 & california$year <= 2024, "before", "after")
+benguela$period <- ifelse(benguela$year >= 1950 & benguela$year <= 2024, "before", "after")
+canary$period <- ifelse(canary$year >= 1950 & canary$year <= 2024, "before", "after")
+humboldt$period <- ifelse(humboldt$year >= 1950 & humboldt$year <= 2024, "before", "after")
+```
+
+## 2
+
+```{r}
+# Multimodel mean for California
+california.mean <- data.frame(year=california$year,
+period=california$period,
+upwelling= rowMeans(california[,1:22]))
+
+# Multimodel mean for Canary
+canary.mean <- data.frame(year=canary$year,
+period=canary$period,
+upwelling=rowMeans(canary[,1:22]))
+
+# Multimodel mean for Humboldt
+humboldt.mean <- data.frame(year=humboldt$year,
+period=humboldt$period,
+upwelling=rowMeans(humboldt[,1:22]))
+
+# Multimodel mean for Benguela
+benguela.mean <- data.frame(year=benguela$year,
+period=benguela$period,
+upwelling=rowMeans(benguela[,1:22]))
+```
+
+```{r}
+california.mean
+```
+
+
+## 3
+I am using Shapiro Wilk's Normality Test, and I have 8 tests to do..
+H0: The data is from the normal distribution
+H1: The data is not from the normal distribution
+
+```{r}
+california.mean.before <- subset(california.mean, period == "before")
+california.mean.after <- subset(california.mean, period == "after")
+```
+
+```{r}
+shapiro.test(california.mean.before$upwelling)
+```
+
+```{r}
+shapiro.test(california.mean.after$upwelling)
+```
+For this two datasets, we can see the p-values are above 0.05 level. Therefore, we don't have enough evidence to reject the null hypothesis and we can assume the normality.
+
+```{r}
+canary.mean.before <- subset(canary.mean, period == "before")
+canary.mean.after <- subset(canary.mean, period == "after")
+```
+
+```{r}
+shapiro.test(canary.mean.before$upwelling)
+```
+
+```{r}
+shapiro.test(canary.mean.after$upwelling)
+```
+For this two datasets, we can see the p-value of canary.mean.before are above 0.05 level but the p-value of canary.mean.after is less than 0.05 level. Therefore, we don't have enough evidence to reject the null hypothesis for the data of canary.mean.before and we can assume the normality, but we have enough evidence to reject the null hypothesis for the data of canary.mean.before and we cannot assume the normality.
+
+```{r}
+humboldt.mean.before <- subset(humboldt.mean, period == "before")
+humboldt.mean.after <- subset(humboldt.mean, period == "after")
+```
+
+```{r}
+shapiro.test(humboldt.mean.before$upwelling)
+```
+
+```{r}
+shapiro.test(humboldt.mean.after$upwelling)
+```
+For this two datasets, we can see the p-value of humboldt.mean.before are above 0.05 level but the p-value of canary.mean.after is less than 0.05 level. Therefore, we don't have enough evidence to reject the null hypothesis for the data of humboldt.mean.after and we can assume the normality, but we have enough evidence to reject the null hypothesis for the data of canary.mean.before and we cannot assume the normality.
+
+```{r}
+benguela.mean.before <- subset(benguela.mean, period == "before")
+benguela.mean.after <- subset(benguela.mean, period == "after")
+```
+
+```{r}
+shapiro.test(benguela.mean.before$upwelling)
+```
+
+```{r}
+shapiro.test(benguela.mean.after$upwelling)
+```
+For this two datasets, we can see the p-values are above 0.05 level. Therefore, we don't have enough evidence to reject the null hypothesis and we can assume the normality.
+
+Since we observe the non-normality in two groups of data, we can use non-parametric tests for the comparisons. Using non-parametric tests will focus on the median of the data instead of mean. We probably don't want to use the median because we want to compare the means between groups. Therefore, we can use non-parametric tests on groups with non-normal data and parametric test on groups with normal data.
+
+## 4
+unpaired two-sample t-test
+H0: there is no difference between means
+H1: there is difference between means
+
+unpaired two-sample Wilcoxon test
+H0: the observation of $\mu_1-\mu_2$ is symmetric about 0
+H1: the observation of $\mu_1-\mu_2$ is not symmetric about 0
+```{r}
+t.test(california.mean.before$upwelling, california.mean.after$upwelling, alternative = "two.sided", var.equal = FALSE)
+```
+
+```{r}
+t.test(benguela.mean.before$upwelling, benguela.mean.after$upwelling, alternative = "two.sided", var.equal = FALSE)
+```
+
+```{r}
+wilcox.test(canary.mean.before$upwelling, canary.mean.after$upwelling, alternative = "two.sided")
+```
+
+```{r}
+wilcox.test(humboldt.mean.before$upwelling, humboldt.mean.after$upwelling, alternative = "two.sided")
+```
+These four tests all have p-values that are less than 0.05 level. We can reject the null hypothesis and conclude that there is difference between the means of groups.
+
+## 5
+
+```{r}
+# Compute group means and stderrs for California
+mean.upwelling.california <- aggregate(upwelling ~ period, FUN=mean, data=california.mean)
+sderr.upwelling.california <- aggregate(upwelling ~ period,
+FUN=function (x) sd(x),
+data=california.mean)
+
+# Compute group means and stderrs for Canary
+mean.upwelling.canary <- aggregate(upwelling ~ period, FUN=mean, data=canary.mean)
+sderr.upwelling.canary <- aggregate(upwelling ~ period,
+FUN=function (x) sd(x),
+data=canary.mean)
+
+# Compute group means and stderrs for Humboldt
+mean.upwelling.humboldt <- aggregate(upwelling ~ period, FUN=mean, data=humboldt.mean)
+sderr.upwelling.humboldt <- aggregate(upwelling ~ period,
+FUN=function (x) sd(x),
+data=humboldt.mean)
+
+# Compute group means and stderrs for Benguela
+mean.upwelling.benguela <- aggregate(upwelling ~ period, FUN=mean, data=benguela.mean)
+sderr.upwelling.benguela <- aggregate(upwelling ~ period,
+FUN=function (x) sd(x),
+data=benguela.mean)
+```
+
+## 6
+
+```{r}
+# Combine data into a single means dataframe
+upwelling.mean <- data.frame(region=c("Canary", "California", "Benguela", "Humboldt"),
+
+after=c(mean.upwelling.canary$upwelling[2],
+mean.upwelling.california$upwelling[2],
+mean.upwelling.benguela$upwelling[2],
+mean.upwelling.humboldt$upwelling[2]),
+before=c(mean.upwelling.canary$upwelling[1],
+mean.upwelling.california$upwelling[1],
+mean.upwelling.benguela$upwelling[1],
+mean.upwelling.humboldt$upwelling[1]))
+
+# Combine data into a single stderrs dataframe
+upwelling.sderr <- data.frame(region=c("Canary", "California", "Benguela", "Humboldt"),
+
+after=c(sderr.upwelling.canary$upwelling[2],
+sderr.upwelling.california$upwelling[2],
+sderr.upwelling.benguela$upwelling[2],
+sderr.upwelling.humboldt$upwelling[2]),
+before=c(sderr.upwelling.canary$upwelling[1],
+sderr.upwelling.california$upwelling[1],
+sderr.upwelling.benguela$upwelling[1],
+sderr.upwelling.humboldt$upwelling[1]))
+```
+
+```{r}
+upwelling.mean
+upwelling.sderr 
+```
+```{r}
+bp <- barplot(as.matrix(upwelling.mean[, 2:3]), beside = TRUE, main = "Upwelling", 
+col = c("lightblue", "mistyrose", "lavender"),
+xlab = "upwelling.mean", names = c("before", "after"), 
+ylab = "Mean Upwelling", legend = c("Canary", "California", "Benguela", "Humboldt"), 
+args.legend = list(title = "SES", x = "topright", cex = .7), ylim = c(0, 1))
+
+```
+
+```{r}
+bp <- barplot(as.matrix(upwelling.sderr[, 2:3]), beside = TRUE, main = "Upwelling", 
+col = c("lightblue", "mistyrose", "lavender"),
+xlab = "upwelling.mean", names = c("before", "after"), 
+ylab = "Mean Upwelling", legend = c("Canary", "California", "Benguela", "Humboldt"), 
+args.legend = list(title = "SES", x = "topright", cex = .7), ylim = c(0, 0.05))
+
+```
+
+## 7
+Given the plots and statistical analysis, we can see an increasing trend in multimodel means.
+
+## 8
+We can use F-test for equality of variances or Levene's test for equality of variances. F-test assumes the distribution of data is normal, while Levene's test does not. Levene's test is more robust than F-test.
+
+## 9
+H0: The variances of two groups are equal
+H1: The variances of two groups are not equal
+
+```{r}
+var.test(upwelling ~ period, california.mean, alternative = "two.sided")
+```
+The p-value of the test is 0.05499, which is larger than our significance level of 0.05. Thus, we cannot reject the null hypothesis and conclude that the variance among the three groups is equal.
+
+```{r}
+var.test(upwelling ~ period, benguela.mean, alternative = "two.sided")
+```
+The p-value of the test is 0.6402, which is larger than our significance level of 0.05. Thus, we cannot reject the null hypothesis and conclude that the variance among the three groups is equal.
+
+
+```{r}
+library(lawstat)
+```
+
+
+```{r}
+levene.test(canary.mean$upwelling, canary.mean$period, location="median", correction.method="zero.correction")
+```
+The p-value of the test is 0.0102, which is less than our significance level of 0.05. Thus, we reject the null hypothesis and conclude that the variance among the three groups is not equal.
+
+
+```{r}
+levene.test(humboldt.mean$upwelling, humboldt.mean$period, location="median", correction.method="zero.correction")
+```
+The p-value of the test is 0.01984, which is less than our significance level of 0.05. Thus, we reject the null hypothesis and conclude that the variance among the three groups is not equal.
+
+## Problem 2
+
+## 1
+We can perform linear regression to check the rate of change, which is indicated by slope. We can use upwelling as response variable and year as explanatory variable to see the trend over time.
+
+## 2
+1. At each value of X, there is a population of possible Y-values
+whose mean lies on the true regression line (also therefore
+assumes a linear relationship between X and Y)
+2. At each value of X, the distribution of Y is normal
+3. The variance of Y values is the same at each value of X
+4. At each value of X, the Y measurements are a random sample
+from the population of possible Y-values
+
+The california and benguela systems meet the requirements while the other two do not.
+
+```{r}
+lm_california = lm(upwelling~year, data = california.mean) #Create the linear regression
+summary(lm_california) #Review the results
+```
+
+```{r}
+lm_benguela = lm(upwelling~year, data = benguela.mean) #Create the linear regression
+summary(lm_benguela) #Review the results
+```
+
+```{r}
+lm_canary = lm(upwelling~year, data = canary.mean) #Create the linear regression
+summary(lm_canary) #Review the results
+```
+
+```{r}
+lm_humboldt = lm(upwelling~year, data = humboldt.mean) #Create the linear regression
+summary(lm_humboldt) #Review the results
+```
+
+## 3
+
+```{r}
+california.mean.train <- california.mean[,c("year","upwelling")]
+benguela.mean.train <- benguela.mean[,c("year","upwelling")]
+canary.mean.train <- canary.mean[,c("year","upwelling")]
+humboldt.mean.train <- humboldt.mean[,c("year","upwelling")]
+```
+
+```{r}
+california.pred <- predict(lm_california, newdata = california.mean.train)
+benguela.pred <- predict(lm_benguela, newdata = benguela.mean.train)
+canary.pred <- predict(lm_canary, newdata = canary.mean.train)
+humboldt.pred <- predict(lm_humboldt, newdata = humboldt.mean.train)
+```
+
+```{r}
+a <- as.data.frame(california.pred)
+a["b.pred"] <- benguela.pred
+a["c.pred"] <- canary.pred
+a["h.pred"] <- humboldt.pred
+a["year"] <- california.mean$year
+```
+
+```{r}
+a
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(a, aes(x = year)) + 
+    geom_point(aes(y = california.pred, color = "california")) + 
+    geom_point(aes(y = b.pred, color = "benguela"))  + 
+    geom_point(aes(y = c.pred, color = "canary")) +
+    geom_point(aes(y = h.pred, color = "humboldt")) +
+    scale_colour_manual(name='Regression Model',
+                     breaks=c('california', 'benguela', 'canary', 'humboldt'),
+                     values=c('california'='red', 'benguela'='green', 'canary'='blue', 'humboldt'='black') )
+```
+We can see an increasing trends for all the models through the years.
+

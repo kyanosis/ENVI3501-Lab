@@ -1,0 +1,170 @@
+---
+title: "lab6-Chen"
+author: "Weixuan Chen"
+date: "2023-03-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data
+
+```{r}
+# Download the data
+d1=read.csv("http://faraway.neu.edu/biostats/lab6_dataset1.csv")
+d2=read.csv("http://faraway.neu.edu/biostats/lab6_dataset2.csv")
+```
+
+## Task 1
+
+## 1
+
+```{r}
+head(d1)
+```
+
+```{r}
+d1["drug1.binary"] <- as.numeric(factor(d1$drug1)) - 1
+d1["drug2.binary"] <- as.numeric(factor(d1$drug2)) - 1
+d1["log score"] <- log10(d1$score)
+head(d1)
+```
+
+```{r}
+raw.aov <- aov(score ~ drug1.binary + drug2.binary + drug1.binary * drug2.binary, data = d1)
+log10.aov <- aov(`log score` ~ drug1.binary + drug2.binary + drug1.binary * drug2.binary, data = d1)
+```
+
+```{r}
+summary(raw.aov)
+```
+
+```{r}
+summary(log10.aov)
+```
+Yes, the transformation changed the model fit by looking at the rediduals.
+
+## 2 
+
+```{r}
+raw.aov.resid <- resid(raw.aov)
+log10.aov.resid <- resid(log10.aov)
+```
+
+```{r}
+par(mfrow=c(1,2))
+
+qqnorm(raw.aov.resid, pch = 1, frame = FALSE)
+qqline(raw.aov.resid, col = "steelblue", lwd = 2)
+
+qqnorm(log10.aov.resid, pch = 1, frame = FALSE)
+qqline(log10.aov.resid, col = "steelblue", lwd = 2)
+```
+From the QQ-plot, we can see the untransformed data does not follow the trend of qqline, but the transformed data does. Therefore, the transformation is needed and we should use transformed data.
+
+## 3
+From the ANOVA table of transformed data, we can observe that the p-value of drug1 is not significant, which we conclude that there is no significant different in means of drug1. For the other 2, the p-values are significant so we can conclude that there are differences between means in those groups.
+
+## 4
+
+```{r}
+TukeyHSD(aov(`log score` ~ as.factor(drug1.binary) + as.factor(drug2.binary) + as.factor(drug1.binary) * as.factor(drug2.binary), data = d1))
+```
+
+```{r}
+plot(TukeyHSD(aov(`log score` ~ as.factor(drug1.binary) + as.factor(drug2.binary) + as.factor(drug1.binary) * as.factor(drug2.binary), data = d1)))
+```
+
+## 5
+We can see for the plot of drug1, the 0 is in the confidence interval, but for other factors, the 0 is not in the confidence interval. These agree with the result of ANOVA table, because there is no significant difference in means of drug1 but there is significant differences in other groups.
+
+## 6
+
+```{r}
+d1["drug1:drug2"] <- d1$drug1.binary*d1$drug2.binary
+d1
+```
+
+
+```{r}
+require(multcompView, quietly=TRUE)
+# Compute the mean and std error of each group. You can do this a different way, if you like
+means=tapply(d1$`log score`, list(d1$drug1.binary, d1$drug2.binary), mean)
+stderrs=tapply(d1$`log score`, list(d1$drug1.binary, d1$drug2.binary), sd)
+# Assign a label to each bar. You will need to insert the name of your model object
+#labels=multcompLetters(d1$`drug1:drug2`[, 'p adj'])$
+# Order the labels
+#labels=labels[order(names(labels))]
+# Plot the figure
+bp=barplot(means)
+```
+
+## 7
+
+```{r}
+interaction.plot(d1$drug1.binary, d1$drug2.binary, d1$`log score`,ylim = c(0, 10))
+```
+I prefer interaction.plot. It is more straightforward to show the difference in interaction. We can see the slope starts to change from 0 to 1 by the direction of x-axis. This means the difference starts to appear. 
+
+## 8
+By the plot and the result, I would say the interaction of these two drugs have the most effective performance on the disease, because not only does the change in means appear but also does the decrease in means of scores appear. The interaction of drug 1 and 2 reduces the viral load the most.
+
+## Task 2
+
+## 1
+
+```{r}
+d2
+```
+
+```{r}
+d2["drug1.binary"] <- as.numeric(factor(d2$drug1)) - 1
+d2["drug2.binary"] <- as.numeric(factor(d2$drug2)) - 1
+d2["sex.binary"] <- as.numeric(factor(d2$sex)) - 1
+d2["log score"] <- log10(d2$score)
+```
+
+
+```{r}
+d2.aov <- aov(`log score` ~  drug1.binary * drug2.binary * sex.binary, data=d2)
+summary(d2.aov)
+```
+We can see the drug1 and drug1:sex are not significant at 0.05 level, while others are. We can conclude that the means in these two groups are not significantly different while other are. 
+
+## 2
+
+```{r}
+par(mfrow=c(1,2))
+interaction.plot(d2$sex.binary, d2$drug1.binary, d2$`log score`,ylim = c(0, 10))
+interaction.plot(d2$sex.binary, d2$drug2.binary, d2$`log score`,ylim = c(0, 10))
+```
+
+## 3
+We can look at the slope of these two plots. In plot 1, the slopes do not have significant difference. This means the mean in scores does not have significant differences for sex and each group of drug1. But this situation changes for sex and drug 2, where we can observe a significant changes in slopes. This means the treatment has differences in means compared to the control group.
+
+## 4
+
+```{r}
+# Compute mean and standard error for each group
+means=aggregate(`log score` ~ drug1.binary + drug2.binary + sex.binary, FUN=mean, data=d2)
+stderrs=aggregate(`log score` ~ drug1.binary + drug2.binary + sex.binary,
+sd, data=d2)
+# Perform multiple comparisons
+d2.mod.aov.tukey=TukeyHSD(aov(`log score` ~ as.factor(drug1.binary) * as.factor(drug2.binary) * as.factor(sex.binary), data = d2))
+# Plot bars
+bp=barplot(means$`log score`)
+bp
+```
+
+```{r}
+d2.mod.aov.tukey
+```
+
+```{r}
+plot(TukeyHSD(aov(`log score` ~ as.factor(drug1.binary) * as.factor(drug2.binary) * as.factor(sex.binary), data = d2)))
+```
+
+## 5
+I would recommend the drug1:drug2 for both males and females based on the plots and graphs.

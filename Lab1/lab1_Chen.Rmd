@@ -1,0 +1,162 @@
+---
+title: "lab1_Chen"
+author: "Weixuan Chen"
+date: "1/25/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Task 1
+
+```{r}
+d1=read.csv("http://faraway.neu.edu/biostats/lab1_dataset1.csv")
+d1
+```
+
+## 1
+
+```{r}
+str(d1)
+```
+
+The variables are "sex", "treatment", "outcome" respectively. The data type is categorical.
+
+## 2a
+
+```{r}
+table(subset(d1, select = c("sex","outcome")))
+```
+
+It seems the disease is more prevalent in male group than female group.
+
+# 2b
+
+```{r}
+table(subset(d1, select = c("treatment","outcome")))
+```
+
+Drugs seems to be more effective because the proportion of "not sick" is obviously greater than that of placebo.
+
+The effectiveness is contigent to te sex subject because the male and female groups have the same number of people having these two medicine but the effectiveness of female group outperforms that of male group.
+
+## 3
+
+```{r}
+prop.female <- function(vec){
+sum(vec == "female") / length(vec)
+}
+aggregate(sex ~ treatment, data = d1, FUN = prop.female)
+```
+
+
+```{r}
+prop.sick <- function(vec){
+sum(vec == "sick") / length(vec)
+}
+aggregate(outcome ~ treatment, data = d1, FUN = prop.sick)
+```
+It is obvious that based on the whole group of sick people, the drug is more effetive. So I would suggest anyone who got the disease to take the drug.
+
+## 4
+
+According to the previous tables, we can observe that drug works better on females than males. 
+
+## Task 2
+
+```{r}
+d2=read.csv("http://faraway.neu.edu/biostats/lab1_dataset2.csv")
+d2
+```
+
+## 1
+
+```{r}
+str(d2)
+```
+
+The names of variables are "sex", "treatment", "outcome", "side.effects" respectively. The data type of sex, outcome and side.effect is categorical and that of treatment is numerical(int).
+
+## 2
+
+```{r}
+prop.sick <- function(vec){
+sum(vec == "sick") / length(vec)
+}
+my_agg <- aggregate(outcome ~ treatment, data = d2, FUN = prop.sick)
+my_agg
+```
+
+It seems that some medicine has smaller proportion of sick outcome than others. It can explain the effectiveness of the drug to some extent. 
+
+## 3
+
+```{r}
+sick.males=subset(d2, sex == "male") # Select males
+sick.males
+```
+
+
+
+```{r}
+sick.males=subset(d2, sex == "male") # Select males
+sick.females=subset(d2, sex=="female") # Select females
+sick.males=aggregate(outcome ~ treatment, data = sick.males, FUN = prop.sick)
+sick.females=aggregate(outcome ~ treatment, data = sick.females, FUN = prop.sick)
+plot (sick.males$treatment, sick.males$outcome, ylim=c(0, 1),
+col='blue', xlab="dosage", ylab="proportion of sick")
+points (sick.females$treatment, sick.females$outcome, ylim=c(0, 1), col='red')
+legend(x="topright", legend=c("male", "female"), col=c("blue", "red"), pch=1)
+```
+
+The disease prevalence is high for drug 1 to 5 and low for drug 6 to 10 in male group. The disease prevalence is quite low in all drugs for female group. I would describe the change is non-linear. The drug 1 to 4 seem to have disproportion for male and female groups which suggests that their effectiveness may differ based on sex. I would suggest drug 7 because it is both effective to males and females and it has relatively low proportion of sickness.
+
+## Task 3
+
+## 1
+
+```{r}
+prop.side <- function(vec){
+sum(vec == "yes") / length(vec)
+}
+my_side <- aggregate(side.effects ~ sex + treatment, data = d2, FUN = prop.side)
+my_side
+```
+
+The proportion of side effect increases from drug 1 to drug 10 in both group of sex.
+
+## 2
+
+```{r}
+prop.sick <- function(vec){
+sum(vec == "sick") / length(vec)
+}
+my_sick <- aggregate(outcome ~ sex + treatment, data = d2, FUN = prop.sick)
+my_sick
+```
+
+```{r}
+my_side.male <- subset(my_side, sex == "male")
+my_side.female <- subset(my_side, sex == "female")
+
+my_sick.male <- subset(my_sick, sex == "male")
+my_sick.female <- subset(my_sick, sex == "female")
+
+par(mfrow=c(1,2))
+plot (my_side.male$treatment, my_side.male$side.effects, ylim=c(0, 1),
+col='red', xlab="dosage", ylab="proportion of side effect for male")
+points (my_sick.male$treatment, my_sick.male$outcome, ylim=c(0, 1), col='blue')
+legend(x="topright", legend=c("side effect", "sick"), col=c("red", "blue"), pch=1)
+
+plot (my_side.female$treatment, my_side.female$side.effects, ylim=c(0, 1),
+col='red', xlab="dosage", ylab="proportion of side effect for female")
+points (my_sick.female$treatment, my_sick.female$outcome, ylim=c(0, 1), col='blue')
+legend(x="topright", legend=c("side effect", "sick"), col=c("red", "blue"), pch=1)
+
+```
+
+## 3
+
+I would suggest drug 6 for male because it has a low rate of sickness and comparatively medium side effect. I would suggest drug 3 for female for the same reason. Overall, I would suggest drug 6 because it has the best average performance among two groups. It contradicts with my previous recommendation.

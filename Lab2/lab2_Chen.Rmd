@@ -1,0 +1,204 @@
+---
+title: "lab2_Chen"
+author: "Weixuan Chen"
+date: "2/1/2023"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Download the data
+
+```{r}
+# Download the data
+d2012=read.csv("http://faraway.neu.edu/biostats/lab2_dataset1.csv")
+d2008=read.csv("http://faraway.neu.edu/biostats/lab2_dataset2.csv")
+d2004=read.csv("http://faraway.neu.edu/biostats/lab2_dataset3.csv")
+```
+
+## Task 1
+
+## 1
+
+```{r}
+skewness1 <- function (x) {
+  x_mean <- mean(x)
+  x_sd <- sd(x)
+  x_size <- length(x)
+  sum <- 0
+  for (value in x){
+    sum = sum + (value - x_mean)^3
+  }
+  result <- sum/(x_size*x_sd^3)
+  
+  return (result)
+}
+```
+
+## 2
+
+2004
+```{r}
+mean(d2004$population.size)
+
+median(d2004$population.size)
+
+skewness1(d2004$population.size)
+```
+
+2008
+```{r}
+mean(d2008$population.size)
+
+median(d2008$population.size)
+
+skewness1(d2008$population.size)
+```
+
+2012
+```{r}
+mean(d2012$population.size)
+
+median(d2012$population.size)
+
+skewness1(d2012$population.size)
+```
+
+Based on skewness, we can see the metric in 2004 and 2008 are far greater than 0.5, which indicates a strong sknewness of the distribution. This means that most voting precincts are small because most of the population size is smaller than the mean and mean is greater than the median. In 2012, the skewness gets smaller and it is moderate. This means the distribution of the population size of precincts are moderately symmetric and mean and median are close to each other.
+
+## 3
+
+```{r}
+hist(d2004$voted.democrat/d2004$population.size * 100,
+     col = adjustcolor("steelblue1", alpha = 0.3), xlim = c(0, 100), ylim = c(0, 300),
+     xlab = "Percentage of votes", main = "2004 vs 2012 D Votes", breaks = seq(0, 100, by = 1))
+hist(d2012$voted.democrat/d2012$population.size * 100,
+     col = adjustcolor("blue4", alpha = 0.3),
+     breaks = seq(0, 100, by = 1), add = T)
+legend("topright", c("2004", "2012"), col=c("steelblue1", "blue4"), lwd=10)
+```
+
+## 4
+
+The trend of the votes is more centralized towards around 57% percent in 2012 compared to 2004. I don't think there is enough evidence that shows the votes are polarized.
+
+## Task 2
+
+## 1
+
+```{r}
+# Use substr to extract first digit
+first.digit=substr(as.character(d2012$voted.democrat), start=1, stop=1)
+# Convert the first digit to a number
+first.digit=as.numeric(first.digit)
+
+digits_table <- table(first.digit)
+digits_table
+```
+
+## 2
+
+```{r}
+# Benford's law
+expected=log10(1+1/(1:9))
+# Expected count for each digit based on Benford's Law
+(expected=round(expected*sum(digits_table)))
+```
+
+## 3
+
+```{r}
+bp=barplot(digits_table, names=1:9)
+points(bp, expected, pch=1, col=c("red"))
+```
+
+## 4
+Apparently, the first digit from prediction is not consistent with our observed data.
+
+## 5
+H0 = There is no relationship between observed data and expected data
+H1 = Not H0 (there is a relationship)
+
+```{r}
+df_digits <- as.data.frame(digits_table)
+df_digits <- cbind(df_digits, expected)
+df_digits
+chisq.test(df_digits$Freq, df_digits$expected)
+```
+We have p-value > alpha level which we have to not reject the null hypothesis. This means that the two groups of data can be independent.
+
+## 6
+
+```{r}
+expected11=log10(1+1/(1:9))
+df_digits <- cbind(df_digits, expected11)
+chisq.test(df_digits$Freq, df_digits$expected11)
+```
+We can see the result of p-value is the same as previous one. Since we are using the probability as argument here, we can say the probabilities from the Benford's law is independent of our observed data, which means the observed data does not follow the Benford's law.    
+
+## Task 3
+
+## 1
+
+```{r}
+# P(Win)
+pW=0.5
+# P(Favored|Win)
+pF.W=0.75
+# P(Favored|Loss)
+pF.L=0.20
+#P(Favored) = P(Favored|Win) * P(Win) + P(Favored|Loss) * P(Loss)
+pF = pF.W * pW + pF.L * (1 - pW)
+#P(Win|Favoired) =  P(Favored|Win) * P(Win)/P(Favored)
+pW.F = pF.W*pW/pF
+pW.F
+```
+
+I would say if the Democratic candidate is favored(leading in the polls), the chance of wining the election is approximately 79%.
+
+## 2
+
+```{r}
+# Create a vector of pW values (i.e., P(W))
+pWvals=seq(0, 1, length=101)
+# Initialize the vector of pW.Fvals (i.e., P(W|F))
+pW.Fvals=numeric(101)
+pFvals=numeric(101)
+for (i in 1:length(pWvals)) {
+  # P(Win)
+  pW=pWvals[i]
+  # P(Favored|Win)
+  pF.W=0.75
+  # P(Favored|Loss)
+  pF.L=0.20
+  #P(Favored) = P(Favored|Win) * P(Win) + P(Favored|Loss) * P(Loss)
+  pF = pF.W * pW + pF.L * (1 - pW)
+  pFvals[i] = pF
+  #P(Win|Favoired) =  P(Favored|Win) * P(Win)/P(Favored)
+  pW.F = pF.W*pW/pF
+  pW.Fvals[i] = pW.F
+}
+
+pW.Fvals
+```
+
+## 3
+
+```{r}
+par(mfrow=c(1,2))
+plot(pWvals,pW.Fvals,type='l', col=c("red"))
+abline(b=1, a=0)
+```
+
+```{r}
+par(mfrow=c(1,2))
+plot(pFvals,pW.Fvals,type='l', col=c("red"))
+abline(b=1, a=0)
+```
+**I think the problem should be the pW.Fvals vs pFvals, not pWvals. I plotted both graphs but only made comments to pW.Fvals vs pFvals because this shows the relationship while the other does not.
+
+The line we add is y=x, in our case it implies pFvals = pW.Fvals. That's why when the red line is below the black line, P (W|F) < P(F), whereas when the red line is above the black line, P(W|F) > P(F).

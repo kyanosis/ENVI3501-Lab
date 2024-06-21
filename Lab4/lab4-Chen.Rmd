@@ -1,0 +1,249 @@
+---
+title: "lab4-Chen"
+author: "Weixuan Chen"
+date: "2/22/2023"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+```
+
+
+```{r}
+ # Download the data
+d1 <- read.csv("http://faraway.neu.edu/biostats/lab4_dataset1.csv")
+d1
+```
+
+## Task 1
+
+## 1
+H0:${\mu_{control}=\mu_{treatment} }$
+H1:Not H0(mean of two groups differs)
+
+## 2
+
+```{r}
+hist(d1$age)
+```
+
+## 3
+It may deviate from normal distribution a little.
+```{r}
+lg_10_age <- log10(d1$age)
+par(mfrow=c(1,2))
+hist(lg_10_age)
+hist(d1$age)
+```
+The transformation does not seem to be necessary
+
+## 4
+
+```{r}
+d1_ctl <- subset(d1, treatment == "control")
+d1_vac <- subset(d1, treatment == "vaccinated")
+t.test(d1_ctl$age, d1_vac$age, paired = TRUE)
+```
+We have p-value = 0.91, which we have to not reject the null hypothesis. So we don't have enough evidence to show that the mean of two groups are different.
+
+## 5
+
+```{r}
+ctl_mean <- mean(d1_ctl$age)
+ctl_sd <- sd(d1_ctl$age)
+dim(d1_ctl)
+ctl_upper <- ctl_mean + ctl_sd/sqrt(60)
+ctl_lower <- ctl_mean - ctl_sd/sqrt(60)
+print(paste0("The upper bound is ", ctl_upper))
+print(paste0("The lower bound is ", ctl_lower))
+```
+
+```{r}
+vac_mean <- mean(d1_vac$age)
+vac_sd <- sd(d1_vac$age)
+dim(d1_vac)
+vac_upper <- vac_mean + vac_sd/sqrt(60)
+vac_lower <- vac_mean - vac_sd/sqrt(60)
+print(paste0("The upper bound is ", vac_upper))
+print(paste0("The lower bound is ", vac_lower))
+```
+
+## 6
+H0: mean score of control group has no difference than treatment group
+H1: Not H0 (has difference between two groups)
+
+## 7
+
+```{r}
+hist(d1$score)
+```
+Definitely not normal
+
+## 8
+
+```{r}
+qqnorm(d1$score)
+qqline(d1$score, col="red")
+```
+Apparently, these two lines are not similar
+
+## 9
+
+```{r}
+lg_10_score <- log10(d1$score)
+qqnorm(lg_10_score)
+qqline(lg_10_score, col="red")
+```
+Now two lines look more similar than the previous one. It is normally distributed.
+
+## 10
+
+```{r}
+t.test(log10(d1_ctl$score), log10(d1_vac$score), paired = TRUE)
+```
+The p-value is very small here. We got a very small p-value and thus we have enough evidence to reject the null hypothesis and conclude that these two groups have difference in means of score
+
+## 11
+
+```{r}
+ctl_mean <- mean(d1_ctl$score)
+ctl_sd <- sd(d1_ctl$score)
+dim(d1_ctl)
+ctl_upper <- ctl_mean + ctl_sd/sqrt(60)
+ctl_lower <- ctl_mean - ctl_sd/sqrt(60)
+print(paste0("The upper bound is ", ctl_upper))
+print(paste0("The lower bound is ", ctl_lower))
+```
+
+```{r}
+vac_mean <- mean(d1_vac$score)
+vac_sd <- sd(d1_vac$score)
+dim(d1_vac)
+vac_upper <- vac_mean + vac_sd/sqrt(60)
+vac_lower <- vac_mean - vac_sd/sqrt(60)
+print(paste0("The upper bound is ", vac_upper))
+print(paste0("The lower bound is ", vac_lower))
+```
+
+```{r}
+hpv_mean <- c(ctl_mean, vac_mean)
+hpv_lower_ci <- c(ctl_lower, vac_lower)
+hpv_upper_ci <- c(ctl_upper, vac_upper)
+hpv_index <- c('control', 'vaccinated')
+df <- data.frame(hpv_index, hpv_mean, hpv_lower_ci, hpv_upper_ci)
+df
+```
+
+```{r}
+ggplot(data = df) +
+  geom_bar(aes(x=hpv_index, y=hpv_mean, fill = hpv_index), stat = "identity") +
+  geom_errorbar(aes(x=hpv_index, ymin = hpv_lower_ci, ymax = hpv_upper_ci), width = 0.4, color = "red", size = 1) + 
+  geom_text(aes(x=hpv_index, y = hpv_lower_ci, label = round(hpv_lower_ci, 1)), size = 2, vjust = 1) +
+  geom_text(aes(x=hpv_index, y = hpv_upper_ci, label = round(hpv_upper_ci, 1)), size = 2, vjust = -1) +
+  theme_classic() +
+  labs(title = "Confidence Interval for score") +
+  labs(x="Groups", y = "Mean")
+```
+
+## 12
+Yes. We can observe the obvious differences between two groups.
+
+## 13
+The percentage of the effectiveness of vaccines over that of placebo on average.
+
+## Task2
+
+## 1
+
+```{r}
+ # Download the data
+d3 <- read.csv("http://faraway.neu.edu/biostats/lab4_dataset3.csv")
+d3
+```
+
+## 2
+
+```{r}
+par(mfrow=c(1,2))
+plot(d3$autism)
+plot(d3$vaccine)
+```
+We can see the trends in these two variables are the same. 
+
+## 3
+Considering the humanity, I decide to design an experiment like this: we can first choose a large sample of infants, like 100,000. Then we can record how many of them have the vaccines, and we can choose the same number of children who do not receive vaccines in the same sample randomly, and here we have our final sample. And for the replication purpose, we can choose 1 million infants at first, and divide them into 10 replications. Or we can use smaller sample size(from 100,000 to 10,000)
+
+
+## 4
+
+```{r}
+# Download the data
+d4 <- read.csv("http://faraway.neu.edu/biostats/lab4_dataset4.csv")
+d4
+```
+
+## 5
+
+```{r}
+qqnorm(d4$autism)
+qqline(d4$autism, col="red")
+```
+
+```{r}
+d4_ctl <- subset(d4, treatment == "control")
+d4_vac <- subset(d4, treatment == "vaccine")
+t.test(log10(d4_ctl$autism), log10(d4_vac$autism), paired = TRUE)
+```
+p-value here is 0.22. So we don't have enough evidence to reject the null hypothesis, and we can conclude that there is differences between control and treatment groups on autism.
+
+## 6
+
+```{r}
+ctl_mean <- mean(d4_ctl$autism)
+ctl_sd <- sd(d4_ctl$autism)
+dim(d4_ctl)
+ctl_upper <- ctl_mean + ctl_sd/sqrt(60)
+ctl_lower <- ctl_mean - ctl_sd/sqrt(60)
+print(paste0("The upper bound is ", ctl_upper))
+print(paste0("The lower bound is ", ctl_lower))
+```
+
+```{r}
+vac_mean <- mean(d4_vac$autism)
+vac_sd <- sd(d4_vac$autism)
+dim(d4_vac)
+vac_upper <- vac_mean + vac_sd/sqrt(60)
+vac_lower <- vac_mean - vac_sd/sqrt(60)
+print(paste0("The upper bound is ", vac_upper))
+print(paste0("The lower bound is ", vac_lower))
+```
+
+```{r}
+aut_mean <- c(ctl_mean, vac_mean)
+aut_lower_ci <- c(ctl_lower, vac_lower)
+aut_upper_ci <- c(ctl_upper, vac_upper)
+aut_index <- c('control', 'vaccinated')
+df <- data.frame(aut_index, aut_mean, aut_lower_ci, aut_upper_ci)
+df
+```
+
+```{r}
+ggplot(data = df) +
+  geom_bar(aes(x=aut_index, y=aut_mean, fill = aut_index), stat = "identity") +
+  geom_errorbar(aes(x=aut_index, ymin = aut_lower_ci, ymax = aut_upper_ci), width = 0.4, color = "red", size = 1) + 
+  geom_text(aes(x=aut_index, y = aut_lower_ci, label = round(aut_lower_ci, 1)), size = 2, vjust = 1) +
+  geom_text(aes(x=aut_index, y = aut_upper_ci, label = round(aut_upper_ci, 1)), size = 2, vjust = -1) +
+  theme_classic() +
+  labs(title = "Confidence Interval for autism") +
+  labs(x="Groups", y = "Mean")
+```
+
+## 7
+We observe that the vaccine and autism have dependencies but cannot determine the causality.

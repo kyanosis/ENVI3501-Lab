@@ -1,0 +1,188 @@
+---
+title: "lab5-Chen"
+author: "Weixuan Chen"
+date: "3/1/2023"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## data preparation
+
+```{r}
+d1 <- read.csv("http://faraway.neu.edu/biostats/lab5_dataset1.csv")
+d2 <- read.csv("http://faraway.neu.edu/biostats/lab5_dataset2.csv")
+```
+
+```{r}
+d1
+```
+## Task1
+
+## 1
+H0: There is no differemce in means among all groups
+H1: Not H0 (there is difference)
+
+## 2
+
+```{r}
+control_mort <- subset(d1, treatment == 'control')
+t1_mort <- subset(d1, treatment == 't1')
+t2_mort <- subset(d1, treatment == 't2')
+t3_mort <- subset(d1, treatment == 't3')
+t4_mort <- subset(d1, treatment == 't4')
+hist(control_mort$mortality)
+hist(t1_mort$mortality)
+hist(t2_mort$mortality)
+hist(t3_mort$mortality)
+hist(t4_mort$mortality)
+```
+No, they do not seem normally distributed.
+
+## 3
+
+```{r}
+t1_mort_trans <- log10(t1_mort$mortality)
+t2_mort_trans <- log10(t2_mort$mortality)
+```
+
+```{r}
+par(mfrow=c(2,2))
+hist(t1_mort_trans)
+hist(t2_mort_trans)
+```
+Now they seem to be normally distributed. The transformation is necessary.
+I would use transformed data.
+
+## 4
+
+```{r}
+d1['mortality_transformed'] <- log10(d1$mortality)
+mod.aov.mort <- aov(mortality ~ treatment, data = d1)
+summary(mod.aov.mort)
+```
+
+
+## 5
+From te table, we can see the p-value are significant. We can reject the null hypothesis. There is difference between means among groups.
+
+## 6
+Because Tukey's HSD controls the family-wise error while t-tests don't.
+
+## 7
+
+```{r}
+thsd <- TukeyHSD(mod.aov.mort)
+thsd
+```
+
+## 8
+
+```{r}
+plot(thsd)
+```
+t3-t2, and t4-t3 are different from the mean
+
+## 9
+```{r}
+##install.packages("multcompView")
+require(multcompView)
+```
+
+
+## 10
+```{r}
+mortality_lables <-multcompLetters(thsd$treatment [, "p adj"])$Letters
+
+
+mortality_lables_order <- mortality_lables[order(names(mortality_lables))]
+
+print (mortality_lables_order)
+```
+
+## 11
+
+```{r}
+mean.mortality <- aggregate(mortality ~ treatment, data = d1, FUN = mean)
+
+stderr.mortality <- aggregate(mortality ~ treatment, FUN = function(x) sd(x)/sqrt(length(x)),data = d1)
+
+ci.upp <- mean.mortality$mortality + 1.96 * stderr.mortality$mortality
+
+ci.low <- mean.mortality$mortality - 1.96 * stderr.mortality$mortality
+
+bp <- barplot(mean.mortality$mortality, names = mean.mortality$treatment,
+              main = "Mortality Rate for Treatments",
+              ylim = c(0, max(ci.upp + 1.9)), ylab = "Mortality")
+
+arrows(y0 = ci.low, y1 = ci.upp, x0 = bp, x1 = bp, angle = 90,
+       code = 3, length = 0.1)
+
+text(x = bp, y = mean.mortality$mortality + stderr.mortality$mortality,
+     mortality_lables, pos = 3)
+```
+
+## 12
+t4 seems most effective in increasing pest mortality because it has the hightest mortality rate and highest reaching error bar
+
+## Task 2
+
+## 1
+
+```{r}
+mortality_anova2 = aov(log10(mortality) ~ treatment, d2)
+
+summary(mortality_anova2)
+```
+ANOVA table suggests that the mean mortality is different accross the treatments
+
+## 2
+
+```{r}
+mortality_tukey2 = TukeyHSD(mortality_anova2)
+
+print(mortality_tukey2)
+```
+
+## 3
+
+```{r}
+library(multcompView)
+
+mortality_lables2 <-multcompLetters(mortality_tukey2$treatment [, "p adj"])$Letters
+
+mortality_lables_order2 <- mortality_lables2[order(names(mortality_lables2))]
+
+print (mortality_lables_order2)
+```
+
+```{r}
+mean.mortality2 <- aggregate(mortality ~ treatment, data = d2, FUN = mean)
+
+stderr.mortality2 <- aggregate(mortality ~ treatment, FUN = function(x) sd(x)/sqrt(length(x)), data = d2)
+
+ci.upp2 <- mean.mortality2$mortality + 1.96 * stderr.mortality2$mortality
+
+ci.low2 <- mean.mortality2$mortality - 1.96 * stderr.mortality2$mortality
+
+bp2 <- barplot(mean.mortality2$mortality, names = mean.mortality2$treatment,
+              main = "Mortality Rate for Treatments",
+              ylim = c(0, max(ci.upp2 + 1.9)), ylab = "Mortality")
+
+arrows(y0 = ci.low2, y1 = ci.upp2, x0 = bp2, x1 = bp2, angle = 90,
+       code = 3, length = 0.1)
+
+text(x = bp2, y = mean.mortality2$mortality + stderr.mortality2$mortality,
+     mortality_lables2, pos = 3)
+```
+
+## 4
+t2-control, t4-t1,t3-t2, and t4-t2 are all different from the mean
+t4 has the lowest mortality rate for the enemy of the pest
+
+## 5
+t4 is the best treatment because it has the highest mortality rate for the pest, and lowest mortality rate for the enemy of the pest.

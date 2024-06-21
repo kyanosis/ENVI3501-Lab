@@ -1,0 +1,238 @@
+---
+title: "lab7-Chen"
+author: "Weixuan Chen"
+date: "3/29/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data
+
+```{r}
+# Download the data
+co2=read.table("http://faraway.neu.edu/biostats/lab7_co2.txt", header=TRUE)
+temp=read.csv("http://faraway.neu.edu/biostats/lab7_temp.csv")
+pop=read.csv("http://faraway.neu.edu/biostats/lab7_population.csv")
+```
+
+## Task 1
+
+## 1
+
+```{r}
+str(co2)
+```
+
+```{r}
+str(temp)
+```
+
+```{r}
+str(pop)
+```
+
+```{r}
+range(co2$year)
+range(temp$Year)
+range(pop$year)
+```
+
+## 2
+
+```{r}
+temp
+```
+
+
+```{r}
+# Reshape from wide to long format
+temp.long=reshape(temp, varying=list(names(temp)[2:13]), idvar="Year", v.names = "temp", timevar = "Month", direction="long", times = 1:12)
+# Change column names
+colnames(temp.long)=c("year", "month", "temp")
+```
+
+```{r}
+temp.long
+```
+
+## 3
+
+```{r}
+temp.agg=aggregate(temp ~ year, mean, data=temp.long)
+co2.agg=aggregate(ppm ~ year, mean, data=co2)
+pop.agg=aggregate(popsize ~ year, mean, data=pop)
+```
+
+```{r}
+temp.agg
+co2.agg
+pop.agg
+```
+
+## 4
+
+```{r}
+merged=merge(co2.agg, temp.agg, by="year")
+merged=merge(merged, pop.agg, by="year")
+```
+
+```{r}
+merged
+```
+
+## Task 2
+
+## 1
+
+```{r}
+par(mfrow=c(1,3))
+
+plot(co2$year, co2$ppm)
+plot(temp.long$year, temp.long$temp)
+plot(pop$year, pop$popsize)
+```
+
+## 2
+According to the graph, co2's ppm and pop's popsize variables need transformation. Tranformation can help increase the quality of the dataset because it ensures the data meets the assumptions of the model and thus increase the accuracy of the result. But it also cause the loss of imformation during the transformation.
+
+## 3
+H0: there is no relationship between x and y
+H1: there is relationship between x and y
+
+## 4
+
+```{r}
+temp.lm <- lm(temp ~ year, data = temp.long)
+co2.lm <- lm(ppm ~ year, data = co2)
+pop.lm <- lm(popsize ~ year, data = pop)
+```
+
+```{r}
+summary(temp.lm)
+```
+
+```{r}
+summary(co2.lm)
+```
+
+```{r}
+summary(pop.lm)
+```
+
+## 5
+
+```{r}
+# Extract residuals from linear model
+temp.resid <- resid(temp.lm)
+# TEst the residuals for normality using a Shapiro-Wilk test
+shapiro.test(temp.resid)
+```
+
+```{r}
+# Extract residuals from linear model
+co2.resid <- resid(co2.lm)
+# TEst the residuals for normality using a Shapiro-Wilk test
+shapiro.test(co2.resid)
+```
+
+```{r}
+# Extract residuals from linear model
+pop.resid <- resid(pop.lm)
+# TEst the residuals for normality using a Shapiro-Wilk test
+shapiro.test(pop.resid)
+```
+It shows the heteroscedaticity. 
+
+## 6
+For the temp~year, we can see the p-values of parameters are significant, which is good indicator of the relationship between y and x. Besides, the R^2 is 0.68, which consider as fine fitting.
+
+For the ppm~year, we can see the p-values are also significant, but R^2 is also too small. This means there is a relationship between y and x but linear regression almost fails to catch this relationship, which is underfitting.
+
+For the popsize~year, we also have the significant p-values, but R^2 is too high. This may mean overfitting issues.
+
+## 7
+The assumption is that the distribution of the data will not change.
+
+## 8
+
+```{r}
+# New range of explanatory variable year
+newyears=data.frame(year=1880:2050)
+# Predict response variable based on each regression
+pred.temp.vals=predict(temp.lm, newdata=newyears, interval="confidence")
+pred.co2.vals=predict(co2.lm, newdata=newyears, interval="confidence")
+pred.pop.vals=predict(pop.lm, newdata=newyears, interval="confidence")
+```
+
+## 9
+
+```{r}
+library(gridExtra)
+```
+
+```{r}
+library(ggplot2)
+```
+
+
+```{r}
+newyears["pred.temp.vals"] = pred.temp.vals[,1]
+newyears["pred.co2.vals"] = pred.co2.vals[,1]
+newyears["pred.pop.vals"] = pred.pop.vals[,1]
+
+newyears["pred.temp.lwr"] = pred.temp.vals[,2]
+newyears["pred.co2.lwr"] = pred.co2.vals[,2]
+newyears["pred.pop.lwr"] = pred.pop.vals[,2]
+
+newyears["pred.temp.upr"] = pred.temp.vals[,3]
+newyears["pred.co2.upr"] = pred.co2.vals[,3]
+newyears["pred.pop.upr"] = pred.pop.vals[,3]
+
+p1 <- ggplot(newyears ,aes(newyears$year,pred.temp.vals))+geom_point()+geom_ribbon(stat="smooth",method="lm",se=TRUE,alpha=0.2)+geom_line(stat="smooth",method="lm") + geom_line(aes(y = pred.temp.lwr), lty = 2) +
+  geom_line(aes(y = pred.temp.upr), lty = 2)
+
+p2 <- ggplot(newyears ,aes(newyears$year,pred.co2.vals))+geom_point()+geom_ribbon(stat="smooth",method="lm",se=TRUE,alpha=0.2)+geom_line(stat="smooth",method="lm") + geom_line(aes(y = pred.co2.lwr), lty = 2) +
+  geom_line(aes(y = pred.co2.upr), lty = 2)
+
+p3 <- ggplot(newyears ,aes(newyears$year,pred.pop.vals))+geom_point()+geom_ribbon(stat="smooth",method="lm",se=TRUE,alpha=0.2)+geom_line(stat="smooth",method="lm") + geom_line(aes(y = pred.pop.lwr), lty = 2) +
+  geom_line(aes(y = pred.pop.upr), lty = 2)
+
+grid.arrange(
+  p1,
+  p2,
+  p3,
+  ncol = 3
+)
+```
+
+## Task 3
+
+## 1
+
+```{r}
+cor(merged$ppm, merged$temp)
+cor(merged$ppm, merged$popsize)
+cor(merged$temp, merged$popsize)
+```
+
+```{r}
+pairs(merged[,1:3])
+```
+We can see three variables are positively correlated to each other.
+
+## 2
+Since the variables are highly correlated, the change of one variable could cause the change of the other. Therefore, this approach cannot measure the rate precisely.
+
+## 3
+
+```{r}
+model <- lm(temp ~ year + popsize + ppm, data = merged)
+summary(model)
+```
+We can see the p-values for each factor is not significant. This indicates we do not have enough evidence to show there is a relationship between y and xs. But we can see R^2 is 0.85, which is pretty good for the model.
+
+## 4
+According to the table, it does not have enough evidence to show the causation between temperature and other factors, since we do not reject the null hypothesis for each factor in the summary table above.

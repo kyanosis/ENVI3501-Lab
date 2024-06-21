@@ -1,0 +1,46 @@
+---
+title: "Lab 0"
+author: "Weicuan Chen"
+date: "Date"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# This is where you set global options (leave as-is)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+pisco<-read.csv(file="http://faraway.neu.edu/biostats/pisco_env.csv")
+pisco
+```
+
+## Task 1
+
+### Question 1 
+
+```{r}
+pisco.chla.00 <- subset(pisco, subset = (latitude >= 36 & latitude <= 50), select = c("latitude", "chla"))
+my_mean<-function(x){
+  mean(x)
+}
+pisco.chla.01 <- aggregate(chla ~ latitude, FUN = my_mean, data = pisco.chla.00)
+pisco.chla.01
+```
+### Question 2
+
+```{r}
+my_std<-function(x){
+  sqrt(var(x)/length(x))
+}
+pisco.chla.02 <- aggregate(chla ~ latitude, FUN = my_std, data = pisco.chla.00)
+pisco.chla.02
+```
+### Question3
+
+```{r}
+plot(pisco.chla.00$latitude, pisco.chla.00$chla, type = "p", col="red", ylab = "chla", xlab = "Latitude (degrees N)")
+points(pisco.chla.02$latitude, pisco.chla.02$chla, col="blue")
+legend(x="topright", legend = c("mean", "SE"), col = c("red", "blue"), pch = 1)
+```
+
